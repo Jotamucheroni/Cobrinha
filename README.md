@@ -1,0 +1,2 @@
+# Cobrinha
+Jogo da cobrinha desenvolvido em linguagem C usando o compilador gcc (Ubuntu 7.2.0-8ubuntu3) 7.2.0 para ser executado em terminal Linux. O objetivo da criação desse repositório é auxiliar no versionamento de código para inserção de threads POSIX no programa original e possivelmente adicionando novas funcionalidades no futuro. Também pretendia com isso tornar o código aberto ao público e aceitar possíveis contribuições.
