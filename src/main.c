@@ -2,22 +2,23 @@
  * não inteiro, para ocupar menos espaço na memória                   */ 
 #include <stdio.h>
 #include <unistd.h> //usleep e sleep
-#include <fcntl.h> //kbhit
-#include <termios.h> //kbhit
-#include <stdlib.h>
-#include <errno.h> 
-#include <time.h>
-#include <stdio_ext.h>
+#include <stdlib.h> //srand e rand
+#include <time.h>  //time
+#include "headers/tela.h"
+#include "headers/entrada.h"
 
 //Defines---------------------------------------------------------------
 #define num_coluna 80
 #define num_linha 24
-#define tam_borda 1
-#define tam_max_cobra (num_coluna - tam_borda)*(num_linha - tam_borda)
-#define ECHOFLAGS (ECHO | ECHOE | ECHOK | ECHONL) 
+#define tam_borda_h 1
+#define tam_borda_v 2
+#define tam_max_cobra (num_coluna - 2*tam_borda_v)*(num_linha - 2*tam_borda_h)
 #define itens 3
 #define num_mapa 4
 #define tam_inicial_cobra 5
+#define texto_inst_1 "  Movimente a cobrinha com as teclas w(cima), a(esquerda), s(baixo) e d(direita). Você deve passar pela comida (0) para ganhar pontos. Cada vez que você come a cobrinha cresce. Se você bater nas paredes ou no próprio rabo, o jogo acaba. Pressione <Enter> para selecionar o mapa, pausar e continuar o jogo."
+#define texto_inst_2 "Pressione <Enter> para voltar para o menu"
+#define texto_menu "Alterne entra as opções usando as teclas w(cima) e s(baixo) e selecione com a tecla <Enter>"
 //----------------------------------------------------------------------
 //Mapas
 char mapas[][25][81] = {
@@ -131,12 +132,6 @@ char mapas[][25][81] = {
     }
 };
 //Structs---------------------------------------------------------------
-struct Ponto
-{
-	unsigned char x,y; 
-};
-typedef struct Ponto ponto; 
-
 struct Cobra
 {
 	ponto corpo[tam_max_cobra];
@@ -147,37 +142,34 @@ typedef struct Cobra cobra;
 //----------------------------------------------------------------------
 
 //Rotinas de tela-------------------------------------------------------
-void gotoxy(int x,int y);
-void clrscr();
 void gerar_comida(ponto *comida, char planta[][num_linha + 1]);
 void tela(char planta[][num_linha + 1], cobra c);
 void jogar();
 void inst();
 //----------------------------------------------------------------------
 
-//Leitura de tecla-----------------------------------------------------------------
-int kbhit(void);
-int getch();
-int set_disp_mode(int fd,int option) ;
-//----------------------------------------------------------------------
-
-
 //Bloco principal------------------------------------------------------
 int main()
 {
 	cobra c;
+	ponto inicio = { (num_coluna - 50)/2 + 1, num_linha - 3};
 	char planta[num_coluna + 1][num_linha + 1];
     unsigned char x, y, seta = 0, op;
-	printf("\e[?25l"); //oculta cursor
-	//printf("\e[?25h"); //mostrar o cursor
-	set_disp_mode(STDIN_FILENO, 0); //Impede de digitar na tela
-	do //Menu
+    cor cor_aux;
+	
+	muda_cursor(OCULTA);
+	digitar(DESABILITA);
+	testa_cores();
+	getchar();
+	//Menu
+	do
 	{
 		op = 1;
+		volta_padrao(TUDO);
 		clrscr();
 		//Define o mapa
-		for (x=1; x <= num_coluna; x++)
-			for (y=1; y <= num_linha; y++)
+		for (x = 1; x <= num_coluna; x++)
+			for (y = 1; y <= num_linha; y++)
 				planta[x][y] = mapas[0][y][x];
 		
 	
@@ -185,16 +177,24 @@ int main()
 		c.tam = 1;
 		c.corpo[0].x = 36;
 		c.corpo[0].y = 11;
-	
+		
 		//Desenha mapa e cobra	
 		tela(planta, c);
+		
+		volta_padrao(TUDO);
+		formata_texto(NEGRITO, ATIVADO);
+		cor_aux._16CORES.nome = BRANCO;
+		cor_aux._16CORES.mod = NORMAL;
+		determina_cor(TEXTO, _16CORES, cor_aux);
+		
 		gotoxy(38, 11);
 		printf("Jogar");
 		gotoxy(38, 12);
 		printf("Instruções");
 		gotoxy(38, 13);
 		printf("Sair");
-		seta=0;
+		insere_texto(inicio, 50, 3, texto_menu);
+		seta = 0;
 		while(seta != 10)
 		{
 			if(kbhit())
@@ -237,6 +237,9 @@ int main()
 				break;
 			case 3:
 				clrscr();
+				muda_cursor(MOSTRA);
+				digitar(HABILITA);
+				volta_padrao(TUDO);
 				return 0;
 				break;
 		}
@@ -244,17 +247,6 @@ int main()
 	return 0;
 }
 //----------------------------------------------------------------------
-
-
-void gotoxy(int x,int y)
-{
-    printf("%c[%d;%df",0x1B,y,x);
-}
-
-void clrscr()
-{
-	printf("\e[H\e[2J");
-}
 
 void gerar_comida(ponto *comida, char planta[][num_linha + 1])
 {
@@ -271,18 +263,18 @@ void gerar_comida(ponto *comida, char planta[][num_linha + 1])
 		if((*comida).y >= num_linha)
 			(*comida).y = 1;
 	}
-	
-	//Desenha comida
-	gotoxy((*comida).x, (*comida).y);
-	printf("0");
 }
 
 void tela(char planta[][num_linha + 1], cobra c)
 {
 	unsigned char i, j;
-	clrscr();
+	cor cor_aux;
 	
-	printf("%c[%d;%d;%dm",27,1,37,47); //Muda cor do fundo e da letra
+	volta_padrao(TUDO);
+	clrscr();
+	cor_aux._16CORES.nome = BRANCO;
+	cor_aux._16CORES.mod = NORMAL;
+	determina_cor(FUNDO, _16CORES, cor_aux);
 	
 	for(i = 1; i <= num_coluna; i++)
 		for(j = 1; j <= num_linha; j++)
@@ -291,8 +283,8 @@ void tela(char planta[][num_linha + 1], cobra c)
 				gotoxy(i, j);
 				printf(" ");
 			}
-	printf("%c[%dm", 0x1B, 0);  //Volta para as cores padrão
-	printf("%c[%d;%dm",27,1,37); //Muda cor da letra		
+
+	volta_padrao(FUNDO);		
 	for(i = 0; i < c.tam; i++)
 	{
 		gotoxy(c.corpo[i].x, c.corpo[i].y);
@@ -301,83 +293,31 @@ void tela(char planta[][num_linha + 1], cobra c)
 	
 }
 
-int kbhit(void)
-{
-  struct termios oldt, newt;
-  int ch;
-  int oldf;
- 
-  tcgetattr(STDIN_FILENO, &oldt);
-  newt = oldt;
-  newt.c_lflag &= ~(ICANON | ECHO);
-  tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-  oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-  fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
- 
-  ch = getchar();
- 
-  tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-  fcntl(STDIN_FILENO, F_SETFL, oldf);
- 
-  if(ch != EOF)
-  {
-    ungetc(ch, stdin);
-    return 1;
-  }
- 
-  return 0;
-}
-
-int getch(void)
-{
-    struct termios oldattr, newattr;
-    int ch;
-    tcgetattr( STDIN_FILENO, &oldattr );
-    newattr = oldattr;
-    newattr.c_lflag &= ~( ICANON | ECHO );
-    tcsetattr( STDIN_FILENO, TCSANOW, &newattr );
-    ch = getchar();
-    tcsetattr( STDIN_FILENO, TCSANOW, &oldattr );
-    return ch;
-}
-
-int set_disp_mode(int fd,int option)  
-{  
-   int err;  
-   struct termios term;  
-   if(tcgetattr(fd,&term)==-1){  
-     perror("Cannot get the attribution of the terminal");  
-     return 1;  
-   }  
-   if(option)  
-        term.c_lflag|=ECHOFLAGS;  
-   else  
-        term.c_lflag &=~ECHOFLAGS;  
-   err=tcsetattr(fd,TCSAFLUSH,&term);  
-   if(err==-1 && err==EINTR){  
-        perror("Cannot set the attribution of the terminal");  
-        return 1;  
-   }  
-   return 0;  
-} 
-
 void jogar()
 {
 	cobra c;
 	int tempo = 100000, i;
 	char planta[num_coluna + 1][num_linha + 1];
-    unsigned char x, y, seta = 0, m_comida, mapa = 0;
+    unsigned char x, y, seta = 0, m_comida = 255, mapa = 0;
 	ponto aux, aux0, comida;
-	clrscr();
+	cor cor_aux;
 	//Escolhe o mapa
 	do
 	{
+		volta_padrao(TUDO);
 		clrscr();
 		for (x=1; x <= num_coluna; x++)
 			for (y=1; y <= num_linha; y++)
 				planta[x][y] = mapas[mapa][y][x];
 		c.tam = 0;
 		tela(planta,c);
+		
+		volta_padrao(TUDO);
+		formata_texto(NEGRITO, ATIVADO);
+		cor_aux._16CORES.nome = BRANCO;
+		cor_aux._16CORES.mod = NORMAL;
+		determina_cor(TEXTO, _16CORES, cor_aux);
+		
 		gotoxy(37,1);
 		printf("Mapa %d", mapa+1);
 		seta = getch();
@@ -425,10 +365,16 @@ void jogar()
 		gerar_comida(&comida, planta);
 		seta = 0;
 		//Desenha a pontuação
+		volta_padrao(TUDO);
+		formata_texto(NEGRITO, ATIVADO);
+		cor_aux._16CORES.nome = PRETO;
+		cor_aux._16CORES.mod = NORMAL;
+		determina_cor(TEXTO, _16CORES, cor_aux);
+		cor_aux._16CORES.nome = BRANCO;
+		determina_cor(FUNDO, _16CORES, cor_aux);
+		
 		gotoxy(67, 1);
-		printf("%c[%d;%d;%dm",27,1,30,47); //Muda cor do fundo e da letra
 		printf("Pontos:    0");
-		printf("%c[%dm", 0x1B, 0);  //Volta para as cores padrão
 		while(1)
 		{
 			if(kbhit()) //Verifica se o usuário apertou uma tecla
@@ -474,6 +420,9 @@ void jogar()
 			}
 			fflush(stdout); //Usar sempre antes de um sleep, senão trava as outras ações do programa
 			usleep(tempo);
+			
+			volta_padrao(TUDO);
+			
 			gotoxy(c.corpo[c.tam - 1].x, c.corpo[c.tam - 1].y);
 			printf(" ");
 			planta[c.corpo[c.tam - 1].x][c.corpo[c.tam - 1].y] -= 1;
@@ -489,8 +438,16 @@ void jogar()
 			{
 				gerar_comida(&comida, planta);
 				c.tam++;
+				
+				volta_padrao(TUDO);
+				formata_texto(NEGRITO, ATIVADO);
+				cor_aux._16CORES.nome = PRETO;
+				cor_aux._16CORES.mod = NORMAL;
+				determina_cor(TEXTO, _16CORES, cor_aux);
+				cor_aux._16CORES.nome = BRANCO;
+				determina_cor(FUNDO, _16CORES, cor_aux);
+				
 				gotoxy(75, 1);
-				printf("%c[%d;%d;%dm",27,1,30,47); //Muda cor do fundo e da letra
 				if(c.tam - tam_inicial_cobra < 1000)
 					printf(" ");
 				if(c.tam - tam_inicial_cobra < 100)
@@ -498,15 +455,18 @@ void jogar()
 				if(c.tam - tam_inicial_cobra < 10)
 					printf(" ");
 				printf("%d", c.tam - tam_inicial_cobra);
-				printf("%c[%dm", 0x1B, 0);  //Volta para as cores padrão
 			}
-			for(i = 1; i < c.tam; i++) 						//1 -> 0, 2 -> 1, 3 -> 2, 4 -> 3
+			for(i = 1; i < c.tam; i++) 						//1 -> 0, 2 -> 1, 3 -> 2, 4 -> 3, ...
 			{
 				aux = c.corpo[i];
 				c.corpo[i] = aux0;
 				aux0 = aux;
 			}
-			gotoxy(comida.x, comida.y); //Faz a comida piscar
+			
+			volta_padrao(TUDO);
+			
+			//Faz a comida piscar
+			gotoxy(comida.x, comida.y);
 			if(m_comida)
 				printf("0");
 			else
@@ -518,8 +478,11 @@ void jogar()
 void inst()
 {
 	int x,y;
+	ponto inicio = {tam_borda_v + 1, tam_borda_h + 1};
 	cobra c;
+	cor cor_aux;
 	char planta[num_coluna + 1][num_linha + 1];
+	
 	for (x=1; x <= num_coluna; x++)
 		for (y=1; y <= num_linha; y++)
 			planta[x][y] = mapas[0][y][x];
@@ -530,19 +493,15 @@ void inst()
 	//Desenha mapa e cobra	
 	tela(planta, c);
 	
-	gotoxy(4,2);
-	printf("Movimente a cobrinha com as teclas w(cima), a(esquerda), s(baixo) e");
-	gotoxy(3,3);
-	printf("d(direita).");
-	gotoxy(4,4);
-	printf("Você deve passar pela comida (0) para ganhar pontos. Cada vez que você come");
-	gotoxy(3,5);
-	printf("a cobrinha cresce.");
-	gotoxy(4,6);
-	printf("Se você bater nas paredes ou no próprio rabo, o jogo acaba.");
-	gotoxy(4,7);
-	printf("Pressione <Enter> para selecionar o mapa, pausar e continuar o jogo");
-	gotoxy(20,23);
-	printf("Pressione <Enter> para voltar para o menu");
+	volta_padrao(TUDO);
+	formata_texto(NEGRITO, ATIVADO);
+	cor_aux._16CORES.nome = BRANCO;
+	cor_aux._16CORES.mod = NORMAL;
+	determina_cor(TEXTO, _16CORES, cor_aux);
+	
+	insere_texto(inicio, num_coluna - 2*tam_borda_v, num_linha - 2*tam_borda_h, texto_inst_1);
+	inicio.x = (num_coluna - 41)/2 + 1;
+	inicio.y = num_linha - 2;
+	insere_texto(inicio, 41, 1, texto_inst_2);
 	getchar();
 }
