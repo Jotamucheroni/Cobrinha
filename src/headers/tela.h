@@ -42,13 +42,19 @@ typedef enum atributo {NEGRITO = 1, FRACO, ITALICO, SUBLINHADO, VIDEO_INVERTIDO 
 
 typedef enum estado {DESATIVADO = 0, ATIVADO} estado;
 
+typedef enum componente {COR_TEXTO, COR_FUNDO, FORMATACAO, TEXTO_E_FUNDO, TEXTO_E_FORMATACAO, FUNDO_E_FORMATACAO, TUDO} componente;
+
 typedef struct perfil
 {
 	cor cor_texto, cor_fundo;
 	estado negrito : 1, fraco : 1, italico : 1, sublinhado : 1, video_invertido : 1, invisivel : 1, riscado : 1;
 } perfil;
 
-typedef enum componente {COR_TEXTO, COR_FUNDO, FORMATACAO, TEXTO_E_FUNDO, TEXTO_E_FORMATACAO, FUNDO_E_FORMATACAO, TUDO} componente;
+typedef struct forma
+{
+	perfil pf;
+	char caractere;
+} forma;
 
 void clrscr();
 
@@ -63,6 +69,10 @@ int volta_padrao(componente opcao);
 int configura_perfil(perfil pf);
 
 void inicializa_perfil(perfil* pf);
+
+int desenha_retangulo(forma fm, ponto canto_sup_esq, int largura, int altura);
+
+int desenha_borda(forma fm, ponto canto_sup_esq, int largura, int altura, int espessura_vertical, int espessura_horizontal);
 
 void testa_cores(); 
 

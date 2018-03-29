@@ -133,7 +133,7 @@ char mapas[][25][81] = {
     }
 };
 
-static perfil texto, parede, pontuacao, cobrinha, pfcomida;
+static perfil pf_texto, pf_parede, pf_pontuacao, pf_cobrinha, pfcomida;
 
 //Structs---------------------------------------------------------------
 typedef struct Cobra
@@ -154,35 +154,34 @@ void inst();
 //Bloco principal------------------------------------------------------
 int main()
 {
-	cobra c;
-	ponto inicio = { (num_coluna - 50)/2 + 1, num_linha - 3};
-	char planta[num_coluna + 1][num_linha + 1];
-    unsigned char x, y, seta = 0, op;
+	ponto inicio_texto = { (num_coluna - 50)/2 + 1, num_linha - 3}, pmoldura = {1, 1};
+    unsigned char seta = 0, op;
+    forma fm_moldura;
     
     //Criação dos perfis------------------------------------------------
-    inicializa_perfil(&texto);
-    inicializa_perfil(&parede);
-    inicializa_perfil(&pontuacao);
-    inicializa_perfil(&cobrinha);
+    inicializa_perfil(&pf_texto);
+    inicializa_perfil(&pf_parede);
+    inicializa_perfil(&pf_pontuacao);
+    inicializa_perfil(&pf_cobrinha);
     inicializa_perfil(&pfcomida);
     
 		//Texto---------------------------------------------------------
-		texto.negrito = ATIVADO;
-		texto.cor_texto.pd = _16CORES;
-		texto.cor_texto._16CORES.nome = BRANCO;
-		texto.cor_texto._16CORES.mod = NORMAL;
+		pf_texto.negrito = ATIVADO;
+		pf_texto.cor_texto.pd = _16CORES;
+		pf_texto.cor_texto._16CORES.nome = BRANCO;
+		pf_texto.cor_texto._16CORES.mod = NORMAL;
 		
 		//Parede
-		parede.cor_fundo.pd = _16CORES;
-		parede.cor_fundo._16CORES.nome = BRANCO;
-		parede.cor_fundo._16CORES.mod = NORMAL;
+		pf_parede.cor_fundo.pd = _16CORES;
+		pf_parede.cor_fundo._16CORES.nome = BRANCO;
+		pf_parede.cor_fundo._16CORES.mod = NORMAL;
 		
 		//Pontuação
-		pontuacao = parede;
-		pontuacao.negrito = ATIVADO;
-		pontuacao.cor_texto.pd = _16CORES;
-		pontuacao.cor_texto._16CORES.nome = PRETO;
-		pontuacao.cor_texto._16CORES.mod = NORMAL;
+		pf_pontuacao = pf_parede;
+		pf_pontuacao.negrito = ATIVADO;
+		pf_pontuacao.cor_texto.pd = _16CORES;
+		pf_pontuacao.cor_texto._16CORES.nome = PRETO;
+		pf_pontuacao.cor_texto._16CORES.mod = NORMAL;
 		
 		//Cobrinha------------------------------------------------------
 		//Padrão
@@ -197,23 +196,15 @@ int main()
 	//Menu
 	do
 	{
-		op = 1;
 		volta_padrao(TUDO);
 		clrscr();
-		//Define o mapa
-		for (x = 1; x <= num_coluna; x++)
-			for (y = 1; y <= num_linha; y++)
-				planta[x][y] = mapas[0][y][x];
-		
-	
-		//Define a cobra
-		c.tam = 0;
-		
-		//Desenha mapa e cobra	
-		tela(planta, c);
-		
-		configura_perfil(texto);
-		gotoxy(36, 11);
+		fm_moldura.pf = pf_parede;
+		fm_moldura.caractere = ' ';
+		desenha_borda(fm_moldura, pmoldura, num_coluna, num_linha, 1, 2); 
+
+		configura_perfil(pf_texto);
+		op = 1;
+		gotoxy(36, 11);	
 		printf("-");
 		
 		gotoxy(38, 11);
@@ -222,7 +213,7 @@ int main()
 		printf("Instruções");
 		gotoxy(38, 13);
 		printf("Sair");
-		insere_texto(inicio, 50, 3, texto_menu);
+		insere_texto(inicio_texto, 50, 3, texto_menu);
 		seta = 0;
 		while(seta != 10)
 		{
@@ -265,10 +256,10 @@ int main()
 				inst();
 				break;
 			case 3:
+				volta_padrao(TUDO);
 				clrscr();
 				muda_cursor(MOSTRA);
 				digitar(HABILITA);
-				volta_padrao(TUDO);
 				return 0;
 				break;
 		}
@@ -300,7 +291,7 @@ void tela(char planta[][num_linha + 1], cobra c)
 	
 	volta_padrao(TUDO);
 	clrscr();
-	configura_perfil(parede);
+	configura_perfil(pf_parede);
 	
 	for(i = 1; i <= num_coluna; i++)
 		for(j = 1; j <= num_linha; j++)
@@ -310,7 +301,7 @@ void tela(char planta[][num_linha + 1], cobra c)
 				printf(" ");
 			}
 
-	configura_perfil(cobrinha);		
+	configura_perfil(pf_cobrinha);		
 	for(i = 0; i < c.tam; i++)
 	{
 		gotoxy(c.corpo[i].x, c.corpo[i].y);
@@ -338,7 +329,7 @@ void jogar()
 		c.tam = 0;
 		tela(planta,c);
 		
-		configura_perfil(texto);
+		configura_perfil(pf_texto);
 		
 		gotoxy(37,1);
 		printf("Mapa %d", mapa+1);
@@ -387,7 +378,7 @@ void jogar()
 		gerar_comida(&comida, planta);
 		seta = 0;
 
-		configura_perfil(pontuacao);
+		configura_perfil(pf_pontuacao);
 		
 		gotoxy(67, 1);
 		printf("Pontos:    0");
@@ -437,7 +428,7 @@ void jogar()
 			fflush(stdout); //Usar sempre antes de um sleep, senão trava as outras ações do programa
 			usleep(tempo);
 			
-			configura_perfil(cobrinha);
+			configura_perfil(pf_cobrinha);
 			
 			gotoxy(c.corpo[c.tam - 1].x, c.corpo[c.tam - 1].y);
 			printf(" ");
@@ -455,7 +446,7 @@ void jogar()
 				gerar_comida(&comida, planta);
 				c.tam++;
 				
-				configura_perfil(pontuacao);
+				configura_perfil(pf_pontuacao);
 				
 				gotoxy(75, 1);
 				if(c.tam - tam_inicial_cobra < 1000)
@@ -503,7 +494,7 @@ void inst()
 	//Desenha mapa e cobra	
 	tela(planta, c);
 	
-	configura_perfil(texto);
+	configura_perfil(pf_texto);
 	
 	insere_texto(inicio, num_coluna - 2*tam_borda_v, num_linha - 2*tam_borda_h, texto_inst_1);
 	inicio.x = (num_coluna - 41)/2 + 1;

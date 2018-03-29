@@ -1,8 +1,12 @@
 #include "headers/tela.h"
 
+static perfil perfil_atual = {{{{0}}, SISTEMA},{{{0}}, SISTEMA}, 0, 0, 0, 0, 0, 0, 0};
+
 static int verifica_cor(cor atrb);
 
 static int verifica_perfil(perfil pf);
+
+static int verifica_dimensoes(int dim1, int dim2);
 
 void clrscr()
 {
@@ -29,6 +33,14 @@ int verifica_cor(cor atrb)
 int verifica_perfil(perfil pf)
 {
 	if(verifica_cor(pf.cor_texto) == -1 || verifica_cor(pf.cor_fundo) == -1)
+		return -1;
+		
+	return 0;
+}
+
+int verifica_dimensoes(int dim1, int dim2)
+{
+	if(dim1 < 1 || dim2 < 1)
 		return -1;
 		
 	return 0;
@@ -62,7 +74,13 @@ int determina_cor(alvo opcao, cor atrb)
 		else
 			param = 38;
 		if(opcao == FUNDO)
+		{
 			param += 10;
+			perfil_atual.cor_fundo = atrb;
+		}
+		else
+			perfil_atual.cor_texto = atrb;
+			
 		switch(atrb.pd)
 		{
 			case _16CORES:
@@ -94,6 +112,36 @@ int formata_texto(atributo atrb, estado opcao)
 	param = atrb;
 	if(opcao == DESATIVADO)
 		param += 20;
+	switch(atrb)
+	{
+		case NEGRITO:
+			perfil_atual.negrito = opcao;
+		break;
+		
+		case FRACO:
+			perfil_atual.fraco = opcao;
+		break;
+		
+		case ITALICO:
+			perfil_atual.italico = opcao;
+		break;
+		
+		case SUBLINHADO:
+			perfil_atual.sublinhado = opcao;
+		break;
+		
+		case VIDEO_INVERTIDO:
+			perfil_atual.video_invertido = opcao;
+		break;
+		
+		case INVISIVEL:
+			perfil_atual.invisivel = opcao;
+		break;
+		
+		case RISCADO:
+			perfil_atual.riscado = opcao;
+		break;
+	}
 	printf("\e[%dm", param);
 	
 	return 0;
@@ -108,11 +156,20 @@ int volta_padrao(componente opcao)
 	else
 	{
 		if(opcao == COR_TEXTO || opcao == TEXTO_E_FUNDO || opcao == TEXTO_E_FORMATACAO)
+		{
+			perfil_atual.cor_texto.pd = SISTEMA;
 			printf("\e[39m");
+		}
 		if(opcao == COR_FUNDO || opcao == TEXTO_E_FUNDO || opcao == FUNDO_E_FORMATACAO)
+		{
+			perfil_atual.cor_fundo.pd = SISTEMA;
 			printf("\e[49m");
+		}
 		if(opcao == FORMATACAO || opcao == TEXTO_E_FORMATACAO ||  opcao == FUNDO_E_FORMATACAO)
+		{
+			perfil_atual.negrito = perfil_atual.fraco = perfil_atual.italico = perfil_atual.sublinhado = perfil_atual.video_invertido = perfil_atual.invisivel = perfil_atual.riscado = DESATIVADO;
 			printf("\e[21;22;23;24;27;28;29m");
+		}
 	}
 	
 	return 0;	
@@ -133,6 +190,7 @@ int configura_perfil(perfil pf)
 	 */
 	if(pf.negrito ^ pf.fraco)
 	{
+		perfil_atual.negrito = perfil_atual.fraco = DESATIVADO;
 		formata_texto(FRACO, DESATIVADO);
 		formata_texto(pf.negrito ? NEGRITO : FRACO, ATIVADO);
 	}
@@ -154,6 +212,53 @@ void inicializa_perfil(perfil* pf)
 {
 	pf->cor_texto.pd = pf->cor_fundo.pd = SISTEMA;
 	pf->negrito = pf->fraco = pf->italico = pf->sublinhado = pf->video_invertido = pf->invisivel = pf->riscado = DESATIVADO;
+}
+
+int desenha_retangulo(forma fm, ponto canto_sup_esq, int largura, int altura)
+{
+	ponto final, atual;
+	perfil perfil_anterior;
+	
+	if(verifica_dimensoes(largura, altura) == -1 || verifica_perfil(fm.pf) == -1)
+		return -1;
+		
+	perfil_anterior = perfil_atual;
+	configura_perfil(fm.pf);
+	
+	final.x = canto_sup_esq.x + largura - 1;
+	final.y = canto_sup_esq.y + altura - 1;
+	
+	for(atual.y = canto_sup_esq.y; atual.y <= final.y; atual.y++)
+		for(atual.x = canto_sup_esq.x; atual.x <= final.x; atual.x++)
+		{
+			gotoxy(atual.x, atual.y);
+			putchar(fm.caractere);
+		}
+			
+	configura_perfil(perfil_anterior);
+	
+	return 0;
+}
+
+int desenha_borda(forma fm, ponto canto_sup_esq, int largura, int altura, int espessura_horizontal, int espessura_vertical)
+{
+	if(verifica_dimensoes(largura, altura) == -1 || verifica_dimensoes(espessura_horizontal, espessura_vertical) == -1 || verifica_perfil(fm.pf) == -1 || 2 * espessura_horizontal > altura || 2 * espessura_vertical > largura)
+		return -1;
+		
+	//Retêngulo superior
+	desenha_retangulo(fm, canto_sup_esq, largura, espessura_horizontal);
+	//Retângulo inferior
+	canto_sup_esq.y += altura - espessura_horizontal;
+	desenha_retangulo(fm, canto_sup_esq, largura, espessura_horizontal);
+	//Retângulo esquerdo
+	canto_sup_esq.y += 2 * espessura_horizontal - altura;
+	altura -= 2 * espessura_horizontal;
+	desenha_retangulo(fm, canto_sup_esq, espessura_vertical, altura);
+	//Retêngulo direito
+	canto_sup_esq.x += largura - espessura_vertical;
+	desenha_retangulo(fm, canto_sup_esq, espessura_vertical, altura);
+	
+	return 0;	
 }
 
 void testa_cores()
