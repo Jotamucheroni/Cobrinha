@@ -1,6 +1,6 @@
 # Variáveis de comando
 CC = gcc
-CFLAGS = -Wall
+CFLAGS = -Wall -g
 
 # Diretórios
 SRC_DIR = src/
@@ -14,7 +14,7 @@ TARGET = $(addprefix $(BIN_DIR), cobrinha)
 
 # Alvo main (executável)
 main: $(OBJECTS) $(BIN_DIR)
-	$(CC) $(OBJECTS) -o $(TARGET)
+	$(CC) -g $(OBJECTS) -o $(TARGET)
 
 # Gera arquivos objeto
 $(OBJ_DIR)%.o: $(SRC_DIR)%.c $(OBJ_DIR)

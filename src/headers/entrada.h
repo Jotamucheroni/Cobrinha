@@ -1,3 +1,6 @@
+#ifndef ENTRADA_H
+#define ENTRADA_H 
+
 #include <stdio.h>
 #include <unistd.h>
 #include <fcntl.h>
@@ -21,3 +24,5 @@ int set_disp_mode(int fd,int option);
 int muda_cursor(cursor estado);
 
 int digitar(digita estado);
+
+#endif

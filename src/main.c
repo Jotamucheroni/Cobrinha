@@ -1,5 +1,4 @@
-/*As variáveis que armazenam o valor das coordenadas são do tipo char, e
- * não inteiro, para ocupar menos espaço na memória                   */ 
+//Bibliotecas-----------------------------------------------------------
 #include <stdio.h>
 #include <unistd.h> //usleep e sleep
 #include <stdlib.h> //srand e rand
@@ -7,7 +6,7 @@
 #include "headers/tela.h"
 #include "headers/entrada.h"
 
-//Defines---------------------------------------------------------------
+//Constantes------------------------------------------------------------
 #define num_coluna 80
 #define num_linha 24
 #define tam_borda_h 1
@@ -21,6 +20,8 @@
 #define texto_menu "Alterne entra as opções usando as teclas w(cima) e s(baixo) e selecione com a tecla <Enter>"
 //----------------------------------------------------------------------
 //Mapas
+/*As variáveis que armazenam o valor das coordenadas são do tipo char, e
+ * não inteiro, para ocupar menos espaço na memória                   */ 
 char mapas[][25][81] = {
     {
         {0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0},
@@ -131,13 +132,15 @@ char mapas[][25][81] = {
         {0,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1,1}
     }
 };
+
+static perfil texto, parede, pontuacao, cobrinha, pfcomida;
+
 //Structs---------------------------------------------------------------
-struct Cobra
+typedef struct Cobra
 {
 	ponto corpo[tam_max_cobra];
 	int tam, velV, velH; //velocidade horizontal e vertical 
-};
-typedef struct Cobra cobra; 
+} cobra;
 
 //----------------------------------------------------------------------
 
@@ -155,12 +158,42 @@ int main()
 	ponto inicio = { (num_coluna - 50)/2 + 1, num_linha - 3};
 	char planta[num_coluna + 1][num_linha + 1];
     unsigned char x, y, seta = 0, op;
-    cor cor_aux;
-	
+    
+    //Criação dos perfis------------------------------------------------
+    inicializa_perfil(&texto);
+    inicializa_perfil(&parede);
+    inicializa_perfil(&pontuacao);
+    inicializa_perfil(&cobrinha);
+    inicializa_perfil(&pfcomida);
+    
+		//Texto---------------------------------------------------------
+		texto.negrito = ATIVADO;
+		texto.cor_texto.pd = _16CORES;
+		texto.cor_texto._16CORES.nome = BRANCO;
+		texto.cor_texto._16CORES.mod = NORMAL;
+		
+		//Parede
+		parede.cor_fundo.pd = _16CORES;
+		parede.cor_fundo._16CORES.nome = BRANCO;
+		parede.cor_fundo._16CORES.mod = NORMAL;
+		
+		//Pontuação
+		pontuacao = parede;
+		pontuacao.negrito = ATIVADO;
+		pontuacao.cor_texto.pd = _16CORES;
+		pontuacao.cor_texto._16CORES.nome = PRETO;
+		pontuacao.cor_texto._16CORES.mod = NORMAL;
+		
+		//Cobrinha------------------------------------------------------
+		//Padrão
+		
+		//Comida--------------------------------------------------------
+		pfcomida.cor_texto.pd = _16CORES;
+		pfcomida.cor_texto._16CORES.nome = AMARELO;
+		pfcomida.cor_texto._16CORES.mod = BRILHANTE;
+    //------------------------------------------------------------------
 	muda_cursor(OCULTA);
 	digitar(DESABILITA);
-	testa_cores();
-	getchar();
 	//Menu
 	do
 	{
@@ -174,18 +207,14 @@ int main()
 		
 	
 		//Define a cobra
-		c.tam = 1;
-		c.corpo[0].x = 36;
-		c.corpo[0].y = 11;
+		c.tam = 0;
 		
 		//Desenha mapa e cobra	
 		tela(planta, c);
 		
-		volta_padrao(TUDO);
-		formata_texto(NEGRITO, ATIVADO);
-		cor_aux._16CORES.nome = BRANCO;
-		cor_aux._16CORES.mod = NORMAL;
-		determina_cor(TEXTO, _16CORES, cor_aux);
+		configura_perfil(texto);
+		gotoxy(36, 11);
+		printf("-");
 		
 		gotoxy(38, 11);
 		printf("Jogar");
@@ -210,7 +239,7 @@ int main()
 						printf(" ");
 						op--;
 						gotoxy(36, 10 + op);
-						printf("@");
+						printf("-");
 						seta = 0;
 					}
 					break;
@@ -221,7 +250,7 @@ int main()
 						printf(" ");
 						op++;
 						gotoxy(36, 10 + op);
-						printf("@");
+						printf("-");
 						seta = 0;
 					}
 					break;
@@ -252,29 +281,26 @@ void gerar_comida(ponto *comida, char planta[][num_linha + 1])
 {
 	//Define o ponto inicial da comida
 	srand(time(NULL));
-	(*comida).x = rand() % (num_coluna) + 1;
-	(*comida).y = rand() % (num_linha) + 1;
-	while(planta[(*comida).x][(*comida).y]) //Não pode coincidir com mapa, nem com a cobra
+	comida->x = rand() % (num_coluna) + 1;
+	comida->y = rand() % (num_linha) + 1;
+	while(planta[comida->x][comida->y]) //Não pode coincidir com mapa, nem com a cobra
 	{
-		(*comida).x++;
-		(*comida).y++;
-		if((*comida).x >= num_coluna)
-			(*comida).x = 1;
-		if((*comida).y >= num_linha)
-			(*comida).y = 1;
+		comida->x++;
+		comida->y++;
+		if(comida->x >= num_coluna)
+			comida->x = 1;
+		if(comida->y >= num_linha)
+			comida->y = 1;
 	}
 }
 
 void tela(char planta[][num_linha + 1], cobra c)
 {
 	unsigned char i, j;
-	cor cor_aux;
 	
 	volta_padrao(TUDO);
 	clrscr();
-	cor_aux._16CORES.nome = BRANCO;
-	cor_aux._16CORES.mod = NORMAL;
-	determina_cor(FUNDO, _16CORES, cor_aux);
+	configura_perfil(parede);
 	
 	for(i = 1; i <= num_coluna; i++)
 		for(j = 1; j <= num_linha; j++)
@@ -284,7 +310,7 @@ void tela(char planta[][num_linha + 1], cobra c)
 				printf(" ");
 			}
 
-	volta_padrao(FUNDO);		
+	configura_perfil(cobrinha);		
 	for(i = 0; i < c.tam; i++)
 	{
 		gotoxy(c.corpo[i].x, c.corpo[i].y);
@@ -300,7 +326,7 @@ void jogar()
 	char planta[num_coluna + 1][num_linha + 1];
     unsigned char x, y, seta = 0, m_comida = 255, mapa = 0;
 	ponto aux, aux0, comida;
-	cor cor_aux;
+	
 	//Escolhe o mapa
 	do
 	{
@@ -312,11 +338,7 @@ void jogar()
 		c.tam = 0;
 		tela(planta,c);
 		
-		volta_padrao(TUDO);
-		formata_texto(NEGRITO, ATIVADO);
-		cor_aux._16CORES.nome = BRANCO;
-		cor_aux._16CORES.mod = NORMAL;
-		determina_cor(TEXTO, _16CORES, cor_aux);
+		configura_perfil(texto);
 		
 		gotoxy(37,1);
 		printf("Mapa %d", mapa+1);
@@ -339,7 +361,7 @@ void jogar()
 	}while(seta != 10);
 	
 	
-	//Define o mapa
+	    //Define o mapa
 		for (x=1; x <= num_coluna; x++)
 			for (y=1; y <= num_linha; y++)
 				planta[x][y] = mapas[mapa][y][x];
@@ -364,14 +386,8 @@ void jogar()
 		}
 		gerar_comida(&comida, planta);
 		seta = 0;
-		//Desenha a pontuação
-		volta_padrao(TUDO);
-		formata_texto(NEGRITO, ATIVADO);
-		cor_aux._16CORES.nome = PRETO;
-		cor_aux._16CORES.mod = NORMAL;
-		determina_cor(TEXTO, _16CORES, cor_aux);
-		cor_aux._16CORES.nome = BRANCO;
-		determina_cor(FUNDO, _16CORES, cor_aux);
+
+		configura_perfil(pontuacao);
 		
 		gotoxy(67, 1);
 		printf("Pontos:    0");
@@ -421,7 +437,7 @@ void jogar()
 			fflush(stdout); //Usar sempre antes de um sleep, senão trava as outras ações do programa
 			usleep(tempo);
 			
-			volta_padrao(TUDO);
+			configura_perfil(cobrinha);
 			
 			gotoxy(c.corpo[c.tam - 1].x, c.corpo[c.tam - 1].y);
 			printf(" ");
@@ -439,13 +455,7 @@ void jogar()
 				gerar_comida(&comida, planta);
 				c.tam++;
 				
-				volta_padrao(TUDO);
-				formata_texto(NEGRITO, ATIVADO);
-				cor_aux._16CORES.nome = PRETO;
-				cor_aux._16CORES.mod = NORMAL;
-				determina_cor(TEXTO, _16CORES, cor_aux);
-				cor_aux._16CORES.nome = BRANCO;
-				determina_cor(FUNDO, _16CORES, cor_aux);
+				configura_perfil(pontuacao);
 				
 				gotoxy(75, 1);
 				if(c.tam - tam_inicial_cobra < 1000)
@@ -463,7 +473,7 @@ void jogar()
 				aux0 = aux;
 			}
 			
-			volta_padrao(TUDO);
+			configura_perfil(pfcomida);
 			
 			//Faz a comida piscar
 			gotoxy(comida.x, comida.y);
@@ -480,7 +490,7 @@ void inst()
 	int x,y;
 	ponto inicio = {tam_borda_v + 1, tam_borda_h + 1};
 	cobra c;
-	cor cor_aux;
+	//cor cor_aux;
 	char planta[num_coluna + 1][num_linha + 1];
 	
 	for (x=1; x <= num_coluna; x++)
@@ -489,15 +499,11 @@ void inst()
 		
 	//Define a cobra
 	c.tam = 0;
-	
+
 	//Desenha mapa e cobra	
 	tela(planta, c);
 	
-	volta_padrao(TUDO);
-	formata_texto(NEGRITO, ATIVADO);
-	cor_aux._16CORES.nome = BRANCO;
-	cor_aux._16CORES.mod = NORMAL;
-	determina_cor(TEXTO, _16CORES, cor_aux);
+	configura_perfil(texto);
 	
 	insere_texto(inicio, num_coluna - 2*tam_borda_v, num_linha - 2*tam_borda_h, texto_inst_1);
 	inicio.x = (num_coluna - 41)/2 + 1;
