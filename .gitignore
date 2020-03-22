@@ -47,6 +47,9 @@
 *.cmd
 .tmp_versions/
 modules.order
+
+# Planilhas
+*.ods
 Module.symvers
 Mkfile.old
 dkms.conf
